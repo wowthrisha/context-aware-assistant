@@ -14,6 +14,14 @@
         {
             "task": "Remind me to call mom Sunday at 7 PM",
             "time": "7 PM"
+        },
+        {
+            "task": "Remind me to call dad Sunday",
+            "time": "Sunday"
+        },
+        {
+            "task": "Reminder to attend meetin at 10 pm",
+            "time": "10 pm"
         }
     ],
     "conversation_history": [
@@ -25,6 +33,8 @@
         "Schedule meeting tomorrow",
         "Remind me to call mom Sunday",
         "Remind me to call mom Sunday at 7 PM",
-        "When did I mention calling mom?"
+        "When did I mention calling mom?",
+        "Remind me to call dad Sunday",
+        "Reminder to attend meetin at 10 pm"
     ]
 }
