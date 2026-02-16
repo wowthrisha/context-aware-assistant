@@ -58,6 +58,22 @@
         {
             "task": "send an email to john sir by 5 pm",
             "time": "5 pm"
+        },
+        {
+            "task": "Send an email to John",
+            "time": "No time detected"
+        },
+        {
+            "task": "Submit report to indu mam by 8:45 am",
+            "time": "8:45 am"
+        },
+        {
+            "task": "please remind me about the project deadline tomorrow morning",
+            "time": "tomorrow"
+        },
+        {
+            "task": "next friday after lunch, remind me to submit the final report to kavita mam",
+            "time": "friday"
         }
     ],
     "conversation_history": [
@@ -102,6 +118,29 @@
         "what have I told you about the project",
         "send an email to john sir by 5 pm",
         "set preference for morning time",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "Send an email to John",
+        "Send an email to John",
+        "Submit report to indu mam by 8:45 am",
+        "Submit report to indu mam by 8:45 am",
+        "Submit report to indu mam by 8:45 am",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "please remind me about the project deadline tomorrow morning",
+        "organise a team meeting with alice and bob next monday at 3 pm",
+        "next friday after lunch, remind me to submit the final report to kavita mam",
+        "please remind me about the project deadline tomorrow morning",
+        "please remind me about the project deadline tomorrow morning",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
+        "remind me to submit undertaking form to kavita mam on 17 feb 2026",
         "remind me to submit undertaking form to kavita mam on 17 feb 2026",
         "remind me to submit undertaking form to kavita mam on 17 feb 2026",
         "remind me to submit undertaking form to kavita mam on 17 feb 2026",

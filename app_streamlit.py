@@ -5,10 +5,18 @@ Streamlit Web Interface
 
 import streamlit as st
 import json
+import os
 from datetime import datetime
 from nlp_engine import analyze_input
 from reasoning_engine import reason
 from action_engine import execute
+
+# Try to load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, use environment variables only
 
 # Page configuration
 st.set_page_config(
@@ -18,55 +26,83 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Set Streamlit dark theme
 st.markdown("""
 <style>
-    .main-header {
-        text-align: center;
-        color: #2E86AB;
-        font-size: 2.5em;
-        margin-bottom: 1em;
-    }
+    /* Use Streamlit's native dark theme - minimal custom styling */
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+</style>
+""", unsafe_allow_html=True)
+
+# Use Streamlit's native dark theme - minimal custom styling
+st.markdown("""
+<style>
+    /* Intent Badges - Clean professional styling */
     .intent-badge {
         display: inline-block;
         padding: 0.5em 1em;
-        border-radius: 0.5em;
-        font-weight: bold;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.95em;
         margin: 0.5em 0;
     }
+    
     .intent-schedule {
         background-color: #A23B72;
         color: white;
     }
+    
     .intent-reminder {
         background-color: #F18F01;
         color: white;
     }
+    
     .intent-preference {
         background-color: #C73E1D;
         color: white;
     }
+    
     .intent-retrieve {
         background-color: #6A994E;
         color: white;
     }
+    
     .intent-create {
         background-color: #2E86AB;
         color: white;
     }
+    
     .intent-unknown {
         background-color: #757575;
         color: white;
     }
-    .confidence-bar {
-        margin-top: 1em;
-        margin-bottom: 1em;
+    
+    /* Entity Tags */
+    .entity-tag {
+        display: inline-block;
+        background-color: rgba(46, 134, 171, 0.2);
+        padding: 0.3em 0.6em;
+        border-radius: 4px;
+        margin: 0.2em;
+        font-size: 0.9em;
+        border-left: 3px solid #2E86AB;
     }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<div class="main-header">🤖 NIXIN AI - Context Engine</div>', unsafe_allow_html=True)
+st.markdown('<div style="text-align: center; font-size: 2.5em; font-weight: 600; margin-bottom: 0.5em;">🤖 NIXIN AI - Context Engine</div>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center; font-size: 1.1em; margin-bottom: 2em; opacity: 0.8;">Intelligent Intent Detection & Task Management</p>', unsafe_allow_html=True)
 st.markdown("---")
 
 # Sidebar
@@ -79,6 +115,38 @@ with st.sidebar:
         ["Rule-Based", "Sentence Transformers", "HuggingFace", "Claude API"]
     )
     
+    # Claude API Key Input (only show if Claude is selected)
+    claude_api_key = None
+    if intent_backend == "Claude API":
+        st.subheader("🔑 Claude API Configuration")
+        st.info("Enter your Claude API key below or set ANTHROPIC_API_KEY in .env file")
+        
+        # Try to load from environment first
+        env_api_key = os.getenv("ANTHROPIC_API_KEY")
+        
+        if env_api_key:
+            st.success("✅ API key loaded from .env file")
+            use_env_key = st.checkbox("Use API key from .env file", value=True)
+            if use_env_key:
+                claude_api_key = env_api_key
+            else:
+                claude_api_key = st.text_input(
+                    "Claude API Key",
+                    type="password",
+                    help="Enter your Anthropic Claude API key",
+                    placeholder="sk-ant-..."
+                )
+        else:
+            claude_api_key = st.text_input(
+                "Claude API Key",
+                type="password",
+                help="Enter your Anthropic Claude API key",
+                placeholder="sk-ant-..."
+            )
+        
+        if not claude_api_key:
+            st.warning("⚠️ Claude API key required for Claude API backend")
+    
     st.subheader("Memory")
     if st.button("📋 Load Memory"):
         try:
@@ -89,14 +157,16 @@ with st.sidebar:
         except FileNotFoundError:
             st.warning("No memory file found")
     
+    st.subheader("🎤 Presentation Mode")
+    presentation_mode = st.checkbox("Enable Presentation Mode", value=False, help="Shows comparison across all modes")
+    
     st.subheader("Help")
     st.info("""
-    **Try these commands:**
-    - "Schedule a meeting tomorrow"
-    - "Remind me about the project"
-    - "Set my preference to quiet hours"
-    - "What did I tell you?"
-    - "Send an email to John"
+    **High-confidence test cases (one per mode):**
+    - **Rule-Based:** "remind me to pay electricity bill on 20 feb 2026 at 7 pm"
+    - **Sentence Transformers:** "please remind me about the project deadline tomorrow morning"
+    - **HuggingFace:** "organise a team meeting with alice and bob next monday at 3 pm"
+    - **Claude API:** "next friday after lunch, remind me to submit the final report to kavita mam"
     """)
 
 # Main Content
@@ -117,8 +187,45 @@ with col2:
 if user_input:
     st.markdown("---")
     
-    # Analyze input
-    intent_data = analyze_input(user_input)
+    # Validate Claude API key if needed
+    if intent_backend == "Claude API" and not claude_api_key:
+        st.error("❌ Please provide a Claude API key to use Claude API backend")
+        st.info("💡 You can set it in `.env` file or enter it in the sidebar above")
+        st.stop()
+    
+    # Check for missing dependencies
+    if intent_backend == "Sentence Transformers":
+        try:
+            import sentence_transformers
+        except ImportError:
+            st.error("❌ Sentence Transformers not installed")
+            st.code("pip install sentence-transformers torch", language="bash")
+            st.stop()
+    
+    if intent_backend == "HuggingFace":
+        try:
+            import transformers
+        except ImportError:
+            st.error("❌ Transformers not installed")
+            st.code("pip install transformers torch", language="bash")
+            st.stop()
+    
+    if intent_backend == "Claude API":
+        try:
+            import anthropic
+        except ImportError:
+            st.error("❌ Anthropic SDK not installed")
+            st.code("pip install anthropic", language="bash")
+            st.stop()
+    
+    # Analyze input with selected backend
+    with st.spinner(f"Analyzing with {intent_backend}..."):
+        try:
+            intent_data = analyze_input(user_input, intent_backend=intent_backend, claude_api_key=claude_api_key)
+        except Exception as e:
+            st.error(f"❌ Error analyzing input: {str(e)}")
+            st.info("💡 Falling back to Rule-Based detection...")
+            intent_data = analyze_input(user_input, intent_backend="Rule-Based")
     
     # Display Results
     col1, col2, col3 = st.columns(3)
@@ -174,8 +281,10 @@ if user_input:
         
         st.write("**All Entities:**")
         if intent_data["entities"]:
-            for entity_text, entity_type in intent_data["entities"]:
-                st.caption(f"🏷️ `{entity_text}` → `{entity_type}`")
+            entity_cols = st.columns(min(len(intent_data["entities"]), 3))
+            for idx, (entity_text, entity_type) in enumerate(intent_data["entities"]):
+                with entity_cols[idx % 3]:
+                    st.markdown(f'<div class="entity-tag"><strong>{entity_type}:</strong> {entity_text}</div>', unsafe_allow_html=True)
         else:
             st.caption("No entities found")
     
@@ -200,8 +309,105 @@ if user_input:
     st.subheader("⚡ Response")
     response = execute(action_data, user_input)
     
-    st.success("✅ Action executed")
-    st.info(f"**A:** {response}")
+    if response:
+        st.success("✅ Action executed successfully")
+        st.info(f"**Response:** {response}")
+    else:
+        st.warning("⚠️ Action executed but no response returned")
+    
+    # Presentation Mode: Compare All Modes
+    if presentation_mode:
+        st.markdown("---")
+        st.subheader("🔍 Comparison: All 4 Modes")
+        st.info("Comparing the same input across all detection methods")
+        
+        comparison_results = {}
+        modes_to_test = ["Rule-Based", "Sentence Transformers", "HuggingFace", "Claude API"]
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        for idx, mode in enumerate(modes_to_test):
+            status_text.text(f"Testing {mode}... ({idx+1}/{len(modes_to_test)})")
+            progress_bar.progress((idx + 1) / len(modes_to_test))
+            
+            try:
+                # Get Claude API key from .env if not already set
+                claude_key_for_presentation = claude_api_key or os.getenv("ANTHROPIC_API_KEY")
+                
+                # Skip Claude if no API key
+                if mode == "Claude API" and not claude_key_for_presentation:
+                    comparison_results[mode] = {
+                        "intent": "N/A",
+                        "confidence": 0.0,
+                        "status": "⚠️ API key required"
+                    }
+                else:
+                    api_key = claude_key_for_presentation if mode == "Claude API" else None
+                    result = analyze_input(user_input, intent_backend=mode, claude_api_key=api_key)
+                    comparison_results[mode] = {
+                        "intent": result["intent"],
+                        "confidence": result["confidence"],
+                        "status": "✅"
+                    }
+            except Exception as e:
+                comparison_results[mode] = {
+                    "intent": "Error",
+                    "confidence": 0.0,
+                    "status": f"❌ {str(e)[:30]}"
+                }
+        
+        status_text.empty()
+        progress_bar.empty()
+        
+        # Display comparison table
+        st.markdown("### Results Comparison")
+        
+        # Create professional comparison table
+        for mode, result in comparison_results.items():
+            with st.container():
+                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+                
+                with col1:
+                    st.write(f"**{mode}**")
+                
+                with col2:
+                    if result['intent'] != "N/A" and result['intent'] != "Error":
+                        st.code(result['intent'])
+                    else:
+                        st.caption(result['intent'])
+                
+                with col3:
+                    if result['confidence'] > 0:
+                        st.progress(result['confidence'])
+                        st.caption(f"{result['confidence']:.1%}")
+                    else:
+                        st.caption(result['status'])
+                
+                with col4:
+                    if result['status'] == '✅':
+                        st.markdown("✅")
+                    elif '⚠️' in result['status']:
+                        st.markdown("⚠️")
+                    else:
+                        st.markdown("❌")
+                
+                st.markdown("---")
+        
+        # Summary
+        st.markdown("---")
+        st.markdown("### 📊 Summary")
+        working_modes = [m for m, r in comparison_results.items() if r['status'] == '✅']
+        st.success(f"✅ {len(working_modes)}/{len(modes_to_test)} modes working")
+        
+        if len(working_modes) > 1:
+            # Show agreement
+            intents = [comparison_results[m]['intent'] for m in working_modes]
+            if len(set(intents)) == 1:
+                st.info(f"🎯 All modes agree: **{intents[0]}**")
+            else:
+                unique_intents = ', '.join(set(intents))
+                st.warning(f"⚠️ Modes disagree: {unique_intents}")
     
     # Metadata
     with st.expander("📋 Metadata"):
@@ -218,7 +424,7 @@ if user_input:
 st.markdown("---")
 st.markdown(
     """
-    <div style="text-align: center; color: gray; font-size: 0.85em;">
+    <div style="text-align: center; color: gray; font-size: 0.85em; padding: 1em 0;">
     NIXIN AI - Layer 1 Context Engine | Powered by Transformers & Streamlit
     </div>
     """,

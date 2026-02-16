@@ -9,6 +9,13 @@ import os
 import json
 from typing import Tuple, Dict, Optional
 
+# Try to load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, use environment variables only
+
 # Intent configuration
 INTENT_CONFIG = {
     "set_preference": {"template": "User is setting their preference or configuration"},
@@ -179,12 +186,13 @@ Available intents: {intent_list}"""
 class TransformerIntentDetector:
     """Unified intent detector with multiple backends"""
     
-    def __init__(self, backend: str = "huggingface"):
+    def __init__(self, backend: str = "huggingface", api_key: Optional[str] = None):
         """
         Initialize detector with specified backend
         
         Args:
             backend: One of "huggingface", "sentence_transformers", "claude"
+            api_key: Optional API key for Claude (overrides environment variable)
         """
         self.backend = backend
         self.model = None
@@ -195,7 +203,7 @@ class TransformerIntentDetector:
         elif backend == "sentence_transformers":
             self.model = init_sentence_transformer()
         elif backend == "claude":
-            self.api_key = os.getenv("ANTHROPIC_API_KEY")
+            self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
     
     def detect(self, text: str) -> Tuple[str, float]:
         """Detect intent using configured backend"""
@@ -208,7 +216,7 @@ class TransformerIntentDetector:
         else:
             return "unknown", 0.3
     
-    def switch_backend(self, backend: str) -> bool:
+    def switch_backend(self, backend: str, api_key: Optional[str] = None) -> bool:
         """Switch to a different backend"""
         try:
             self.backend = backend
@@ -217,7 +225,7 @@ class TransformerIntentDetector:
             elif backend == "sentence_transformers":
                 self.model = init_sentence_transformer()
             elif backend == "claude":
-                self.api_key = os.getenv("ANTHROPIC_API_KEY")
+                self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
             return True
         except Exception as e:
             print(f"[ERROR] Failed to switch to {backend}: {e}")

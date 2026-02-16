@@ -1,8 +1,15 @@
 import re
 from datetime import datetime
+from typing import Optional
 
-def analyze_input(user_input):
-    """Analyze user input with rule-based intent detection"""
+def analyze_input(user_input, intent_backend: Optional[str] = None, claude_api_key: Optional[str] = None):
+    """Analyze user input with intent detection (rule-based or transformer-based)
+    
+    Args:
+        user_input: The user's input text
+        intent_backend: One of "Rule-Based", "Sentence Transformers", "HuggingFace", "Claude API"
+                       If None or "Rule-Based", uses rule-based detection
+    """
     
     entities = []
     time_entity = None
@@ -80,8 +87,43 @@ def analyze_input(user_input):
                 entities.append((name, "PERSON"))
                 break  # Take only first valid name
 
-    # Use rule-based intent detection (fast, reliable, no model downloads)
-    intent, confidence = detect_intent_rule_based(user_input)
+    # Use transformer-based or rule-based intent detection
+    if intent_backend and intent_backend != "Rule-Based":
+        # Map UI names to backend names
+        backend_map = {
+            "Sentence Transformers": "sentence_transformers",
+            "HuggingFace": "huggingface",
+            "Claude API": "claude"
+        }
+        backend = backend_map.get(intent_backend, "sentence_transformers")
+        
+        try:
+            from intent_detectors import TransformerIntentDetector
+            # Pass API key for Claude backend
+            api_key = claude_api_key if backend == "claude" else None
+            detector = TransformerIntentDetector(backend=backend, api_key=api_key)
+            intent, confidence = detector.detect(user_input)
+            
+            # If transformer returns unknown with low confidence, might be an error
+            if intent == "unknown" and confidence < 0.5:
+                # Check if it's a missing dependency issue
+                if backend == "claude" and not api_key:
+                    raise ValueError("Claude API key required")
+                # Otherwise fall back to rule-based
+                intent, confidence = detect_intent_rule_based(user_input)
+        except ImportError as e:
+            # Missing dependencies - fall back gracefully
+            import warnings
+            warnings.warn(f"Transformer backend '{backend}' dependencies not installed: {e}. Install with: pip install transformers sentence-transformers anthropic")
+            intent, confidence = detect_intent_rule_based(user_input)
+        except Exception as e:
+            # Other errors - fall back to rule-based
+            import warnings
+            warnings.warn(f"Transformer backend '{backend}' failed: {e}. Falling back to rule-based.")
+            intent, confidence = detect_intent_rule_based(user_input)
+    else:
+        # Use rule-based intent detection (fast, reliable, no model downloads)
+        intent, confidence = detect_intent_rule_based(user_input)
 
     return {
         "intent": intent,

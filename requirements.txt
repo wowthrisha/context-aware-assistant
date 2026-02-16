@@ -1,0 +1,15 @@
+# Core dependencies
+streamlit>=1.28.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# Transformer-based intent detection
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# Claude API (optional)
+anthropic>=0.7.0
+
+# Environment variable management
+python-dotenv>=1.0.0
